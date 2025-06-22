@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All-in-One App</title>
+    <script src="https://unpkg.com/three@0.137.5/build/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        .mario-game {
+            position: relative;
+            background: linear-gradient(skyblue, white);
+        }
+        
+        .mario {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            transition: all 0.1s;
+        }
+        
+        .platform {
+            position: absolute;
+            background: #795548;
+            height: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-[#232f3e] text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">MultiApp</h1>
+            <div class="flex space-x-4">
+                <button onclick="showSection('ecommerce')" class="hover:text-yellow-300">E-commerce</button>
+                <button onclick="showSection('mario')" class="hover:text-yellow-300">Mario Game</button>
+                <button onclick="showSection('billing')" class="hover:text-yellow-300">Billing App</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- E-commerce Section -->
+    <section id="ecommerce" class="container mx-auto p-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Product cards will be inserted here -->
+        </div>
+        <div id="cart" class="fixed top-20 right-4 bg-white p-4 rounded shadow-lg hidden">
+            <h2 class="text-xl font-bold mb-4">Cart</h2>
+            <div id="cart-items"></div>
+            <div class="mt-4">
+                <p>Total: $<span id="cart-total">0</span></p>
+                <button class="bg-yellow-400 px-4 py-2 rounded mt-2 w-full">Checkout</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mario Game Section -->
+    <section id="mario" class="container mx-auto p-4 hidden">
+        <div class="mario-game w-full h-[400px] border rounded relative overflow-hidden">
+            <div id="mario-character" class="mario">🎮</div>
+        </div>
+        <div class="mt-4 text-center">
+            <button onclick="jump()" class="bg-red-500 text-white px-6 py-3 rounded-full text-xl">Jump</button>
+        </div>
+    </section>
+
+    <!-- Billing App Section -->
+    <section id="billing" class="container mx-auto p-4 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Billing Calculator</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-2">Item Name</label>
+                    <input type="text" id="item-name" class="w-full border p-2 rounded">
+                </div>
+                <div>
+                    <label class="block mb-2">Amount (₹)</label>
+                    <input type="number" id="amount" class="w-full border p-2 rounded">
+                </div>
+                <div>
+                    <label class="block mb-2">GST Rate (%)</label>
+                    <select id="gst-rate" class="w-full border p-2 rounded">
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18">18%</option>
+                        <option value="28">28%</option>
+                    </select>
+                </div>
+                <button onclick="calculateBill()" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Calculate</button>
+                <div id="bill-result" class="mt-4"></div>
+                <button onclick="downloadBill()" class="bg-green-500 text-white px-4 py-2 rounded w-full">Download Bill</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Common Functions
+        function showSection(sectionId) {
+            document.querySelectorAll('section').forEach(section => section.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+            if (sectionId === 'ecommerce') loadProducts();
+        }
+
+        // E-commerce Functions
+        let cart = [];
+        
+        async function loadProducts() {
+            const products = [
+                { id: 1, name: "Smartphone", price: 599, image: "https://source.unsplash.com/random/300x200/?smartphone" },
+                { id: 2, name: "Laptop", price: 999, image: "https://source.unsplash.com/random/300x200/?laptop" },
+                { id: 3, name: "Headphones", price: 99, image: "https://source.unsplash.com/random/300x200/?headphones" }
+            ];
+
+            const productSection = document.querySelector('#ecommerce .grid');
+            productSection.innerHTML = products.map(product => `
+                <div class="bg-white p-4 rounded shadow">
+                    <img src="${product.image}" class="w-full h-48 object-cover rounded">
+                    <h3 class="text-xl font-bold mt-2">${product.name}</h3>
+                    <p class="text-gray-600">$${product.price}</p>
+                    <button onclick="addToCart(${JSON.stringify(product)})" class="bg-yellow-400 px-4 py-2 rounded mt-2 w-full">
+                        Add to Cart
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(product) {
+            cart.push(product);
+            updateCart();
+            document.getElementById('cart').classList.remove('hidden');
+        }
+
+        function updateCart() {
+            const cartItems = document.getElementById('cart-items');
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            
+            cartItems.innerHTML = cart.map(item => `
+                <div class="flex justify-between items-center mb-2">
+                    <span>${item.name}</span>
+                    <span>$${item.price}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('cart-total').textContent = total;
+        }
+
+        // Mario Game Functions
+        let isJumping = false;
+        const mario = document.getElementById('mario-character');
+        
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                let position = 0;
+                let upInterval = setInterval(() => {
+                    if (position >= 150) {
+                        clearInterval(upInterval);
+                        let downInterval = setInterval(() => {
+                            if (position <= 0) {
+                                clearInterval(downInterval);
+                                isJumping = false;
+                            }
+                            position -= 5;
+                            mario.style.bottom = position + 'px';
+                        }, 20);
+                    }
+                    position += 5;
+                    mario.style.bottom = position + 'px';
+                }, 20);
+            }
+        }
+
+        // Billing Functions
+        function calculateBill() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const gstRate = parseFloat(document.getElementById('gst-rate').value);
+            const itemName = document.getElementById('item-name').value;
+
+            if (!amount || !itemName) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            const gstAmount = (amount * gstRate) / 100;
+            const totalAmount = amount + gstAmount;
+
+            document.getElementById('bill-result').innerHTML = `
+                <div class="bg-gray-100 p-4 rounded">
+                    <p><strong>Item:</strong> ${itemName}</p>
+                    <p><strong>Base Amount:</strong> ₹${amount.toFixed(2)}</p>
+                    <p><strong>GST (${gstRate}%):</strong> ₹${gstAmount.toFixed(2)}</p>
+                    <p><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</p>
+                </div>
+            `;
+        }
+
+        function downloadBill() {
+            const billContent = document.getElementById('bill-result').innerText;
+            const blob = new Blob([billContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bill.txt';
+            a.click();
+        }
+
+        // Initial load
+        showSection('ecommerce');
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
